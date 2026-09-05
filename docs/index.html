@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Aligned in Form, Not in Meaning — Comprehension–Containment Decoupling of LLM Safety in Bangla</title>
+<meta name="description" content="An empirical audit of five frontier LLMs on native Bangla derogatory speech across six protocols, testing whether safety alignment tracks harmful meaning or only high-resource surface form." />
+<meta name="keywords" content="LLM safety, multilingual NLP, Bangla, low-resource languages, containment, comprehension, alignment, red-teaming, toxicity" />
+<meta name="author" content="Shadab Bin Habib, A K M Ferdous Reza Habib, Subarno Neel, Adib Sakhawat" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://shaduman.github.io/aligned-in-form/" />
+
+<meta property="og:title" content="Aligned in Form, Not in Meaning" />
+<meta property="og:description" content="Comprehension is language-dependent; containment is not. Five frontier LLMs audited on native Bangla derogatory speech across six protocols." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://shaduman.github.io/aligned-in-form/" />
+<meta property="og:image" content="https://shaduman.github.io/aligned-in-form/asset/fig1_comprehension_vs_containment.svg" />
+<meta property="og:image:alt" content="Model-wise comprehension and containment rates in Bangla and English" />
+<meta property="og:site_name" content="Aligned in Form, Not in Meaning" />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Aligned in Form, Not in Meaning" />
+<meta name="twitter:description" content="Safety alignment bound to high-resource surface form, not harmful meaning: an audit of LLM behaviour on native Bangla derogatory speech." />
+<meta name="twitter:image" content="https://shaduman.github.io/aligned-in-form/asset/fig1_comprehension_vs_containment.svg" />
+<meta name="twitter:image:alt" content="Model-wise comprehension and containment rates in Bangla and English" />
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ScholarlyArticle",
+  "headline": "Aligned in Form, Not in Meaning: The Comprehension–Containment Decoupling of LLM Safety in Low-Resource Bangla Derogatory Speech",
+  "description": "An audit of five frontier LLMs on native Bangla derogatory speech across six protocols, testing whether safety alignment follows harmful meaning or high-resource surface form.",
+  "author": [
+    { "@type": "Person", "name": "Shadab Bin Habib" },
+    { "@type": "Person", "name": "A K M Ferdous Reza Habib" },
+    { "@type": "Person", "name": "Subarno Neel" },
+    { "@type": "Person", "name": "Adib Sakhawat" }
+  ],
+  "datePublished": "2026",
+  "url": "https://shaduman.github.io/aligned-in-form/",
+  "image": "https://shaduman.github.io/aligned-in-form/asset/fig1_comprehension_vs_containment.svg",
+  "publisher": { "@type": "Organization", "name": "Aligned in Form, Not in Meaning" }
+}
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          cyan: { electric: '#00E5FF', soft: '#7DE7F0' },
+          lilac: { DEFAULT: '#C9B6FF', soft: '#E3D9FF' },
+          pink: { baby: '#FFD6E0', faded: '#FFE9EF' },
+          ink: '#0A0A0A',
+          fog: '#F7F7F8',
+        },
+        fontFamily: {
+          sans: ['Inter', 'system-ui', 'sans-serif'],
+          serif: ['Fraunces', 'Georgia', 'serif'],
+          mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
+        }
+      }
+    }
+  }
+</script>
+<style>
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    color: #0A0A0A;
+    background: #ffffff;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  .font-display { font-family: 'Fraunces', Georgia, serif; font-optical-sizing: auto; letter-spacing: -0.02em; }
+  .font-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+
+  .prose-academic p { line-height: 1.75; color: #1f1f1f; }
+  .prose-academic p + p { margin-top: 1.1rem; }
+
+  /* Tag/pill */
+  .tag {
+    display: inline-flex; align-items: center;
+    padding: 0.25rem 0.65rem;
+    border: 1px solid #e5e5e5;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 500;
+    color: #444;
+    background: #fff;
+  }
+
+  /* gradient text */
+  .grad-text {
+    background: linear-gradient(90deg, #00E5FF 0%, #C9B6FF 55%, #FFD6E0 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Soft tinted blocks */
+  .tint-cyan { background: linear-gradient(180deg, #EAFBFD 0%, #ffffff 100%); }
+  .tint-lilac { background: linear-gradient(180deg, #F5F0FF 0%, #ffffff 100%); }
+  .tint-pink { background: linear-gradient(180deg, #FFF1F4 0%, #ffffff 100%); }
+
+  /* Hover lift cards */
+  .card {
+    background: #fff;
+    border: 1px solid #ececec;
+    border-radius: 14px;
+    min-width: 0;
+    transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+  }
+  .card:hover {
+    transform: translateY(-2px);
+    border-color: #d5d5d5;
+  }
+
+  /* table */
+  table.results {
+    width: 100%; border-collapse: separate; border-spacing: 0;
+    font-size: 0.82rem;
+  }
+  table.results th, table.results td {
+    padding: 0.55rem 0.6rem; text-align: right;
+    border-bottom: 1px solid #f0f0f0;
+    white-space: nowrap;
+  }
+  table.results th:first-child, table.results td:first-child { text-align: left; }
+  table.results thead th {
+    font-weight: 600; font-size: 0.7rem; letter-spacing: 0.04em;
+    text-transform: uppercase; color: #6a6a6a; background: #fafafa;
+    position: sticky; top: 0;
+  }
+  table.results tbody tr:hover { background: #fbfbfd; }
+  table.results td.metric-cell { font-family: 'JetBrains Mono', monospace; }
+  table.results tbody tr.cohort-row td { font-weight: 600; background: #fafafa; }
+  table.results.wrap th, table.results.wrap td { white-space: normal; }
+
+  /* highlight cells */
+  .hl-pink { background: #FFE2EA !important; }
+  .hl-cyan { background: #D8F7FB !important; }
+  .hl-yellow { background: #FFF4C2 !important; }
+  .hl-green { background: #D8F4D8 !important; }
+  .hl-lilac { background: #EBE2FF !important; }
+
+  /* dotted divider */
+  .div-dot {
+    height: 1px;
+    background-image: linear-gradient(to right, #d0d0d0 50%, transparent 50%);
+    background-size: 8px 1px;
+    background-repeat: repeat-x;
+  }
+
+  /* nav */
+  nav.toc a { transition: color 180ms ease; }
+  nav.toc a:hover { color: #00B8D4; }
+
+  /* Framing / hypothesis block */
+  .eqn-box {
+    background: #fafbfc;
+    border-left: 2px solid #00E5FF;
+    padding: 1rem 1.25rem;
+    border-radius: 6px;
+    margin: 0.6rem 0;
+    overflow-x: auto;
+  }
+
+  pre {
+    box-sizing: border-box;
+    display: block;
+    max-width: 100%;
+    min-width: 0;
+    white-space: pre;
+  }
+
+  /* Caption */
+  .caption {
+    font-size: 0.82rem;
+    color: #5a5a5a;
+    line-height: 1.55;
+    margin-top: 0.8rem;
+    padding: 0 0.25rem;
+  }
+  .caption b, .caption strong { color: #1a1a1a; font-weight: 600; }
+
+  /* Section number */
+  .section-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    color: #00B8D4;
+    font-weight: 500;
+  }
+
+  /* Author block */
+  .author-row { display: flex; flex-wrap: wrap; gap: 0.55rem 1.2rem; justify-content: center; }
+  .author { font-weight: 500; }
+
+  /* Headline number */
+  .headline-num {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.04em;
+  }
+
+  /* footer */
+  footer a { color: #444; }
+  footer a:hover { color: #00B8D4; }
+
+  /* small underline link */
+  .ul-link {
+    background-image: linear-gradient(to right, #00E5FF 0%, #C9B6FF 100%);
+    background-position: 0 100%;
+    background-repeat: no-repeat;
+    background-size: 100% 2px;
+    padding-bottom: 1px;
+  }
+  .ul-link:hover { background-size: 100% 6px; transition: background-size 200ms ease; }
+
+  /* Pull quote */
+  .pull-quote {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 500;
+    font-size: clamp(1.35rem, 2.4vw, 1.85rem);
+    line-height: 1.35;
+    letter-spacing: -0.01em;
+  }
+
+  /* Protocol switcher */
+  .proto-btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    padding: 0.4rem 0.85rem;
+    border: 1px solid #e5e5e5;
+    border-radius: 999px;
+    background: #fff;
+    color: #555;
+    cursor: pointer;
+    transition: all 180ms ease;
+  }
+  .proto-btn:hover { border-color: #b9b9b9; color: #111; }
+  .proto-btn[aria-selected="true"] { background: #0A0A0A; border-color: #0A0A0A; color: #fff; }
+  .proto-panel[hidden] { display: none; }
+
+  /* Content notice */
+  .notice {
+    border: 1px solid #F3C7D2;
+    background: linear-gradient(180deg, #FFF1F4 0%, #ffffff 100%);
+    border-radius: 12px;
+  }
+
+  section[id] { scroll-margin-top: 4.5rem; }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .card, .card:hover, .proto-btn { transition: none; transform: none; }
+  }
+</style>
+</head>
+<body class="bg-white">
+
+<!-- ============================================================== -->
+<!-- TOP BAR -->
+<!-- ============================================================== -->
+<header class="border-b border-neutral-200 bg-white/85 backdrop-blur sticky top-0 z-40">
+  <div class="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between gap-4">
+    <a href="index.html" class="flex items-center gap-3 min-w-0">
+      <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background: linear-gradient(135deg, #00E5FF 0%, #C9B6FF 60%, #FFD6E0 100%);"></span>
+      <span class="hidden sm:inline font-mono text-xs tracking-widest text-neutral-700 uppercase truncate">Aligned in Form</span>
+    </a>
+    <nav class="toc hidden lg:flex items-center gap-1 rounded-full border border-neutral-200 bg-neutral-50/80 p-1 text-xs font-medium text-neutral-600">
+      <a href="#overview" class="rounded-full px-3 py-1.5 hover:bg-white hover:text-neutral-950">Overview</a>
+      <a href="#protocols" class="rounded-full px-3 py-1.5 hover:bg-white hover:text-neutral-950">Protocols</a>
+      <a href="#dataset" class="rounded-full px-3 py-1.5 hover:bg-white hover:text-neutral-950">Dataset</a>
+      <a href="#results" class="rounded-full px-3 py-1.5 hover:bg-white hover:text-neutral-950">Results</a>
+      <a href="#repository" class="rounded-full px-3 py-1.5 hover:bg-white hover:text-neutral-950">Repository</a>
+    </nav>
+    <div class="flex items-center gap-2">
+      <a href="https://arxiv.org/pdf/2608.02941" class="tag hover:border-neutral-400">Paper</a>
+      <a href="https://github.com/ShaduMan/aligned-in-form" class="tag hover:border-neutral-400">Code</a>
+    </div>
+  </div>
+</header>
+
+<!-- ============================================================== -->
+<!-- HERO / TITLE -->
+<!-- ============================================================== -->
+<section class="relative overflow-hidden">
+  <div class="absolute inset-0 pointer-events-none" aria-hidden="true">
+    <div class="absolute -top-32 -left-24 w-[42rem] h-[42rem] rounded-full opacity-30 blur-3xl"
+         style="background: radial-gradient(closest-side, #E3F9FC, transparent 70%);"></div>
+    <div class="absolute -top-10 right-0 w-[38rem] h-[38rem] rounded-full opacity-30 blur-3xl"
+         style="background: radial-gradient(closest-side, #F2EBFF, transparent 70%);"></div>
+    <div class="absolute top-40 left-1/3 w-[28rem] h-[28rem] rounded-full opacity-25 blur-3xl"
+         style="background: radial-gradient(closest-side, #FFE5EC, transparent 70%);"></div>
+  </div>
+
+  <div class="relative max-w-5xl mx-auto px-6 pt-20 pb-14 text-center">
+    <div class="flex justify-center gap-2 mb-6 flex-wrap">
+      <span class="tag">Empirical Study</span>
+      <span class="tag">LLM Safety</span>
+      <span class="tag">Multilingual NLP</span>
+    </div>
+
+    <h1 class="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-medium leading-[1.05] tracking-tight">
+      <span class="block">Aligned in Form,</span>
+      <span class="block mt-3 hl-lilac">Not in Meaning</span>
+      <span class="block mt-3 text-neutral-700 text-2xl sm:text-3xl md:text-4xl font-normal italic">
+        the comprehension&ndash;containment decoupling of LLM safety in low-resource Bangla derogatory speech
+      </span>
+    </h1>
+
+    <p class="mt-8 max-w-2xl mx-auto text-neutral-600 text-base leading-relaxed">
+      Safety alignment is bound to high-resource surface form rather than harmful meaning &mdash; so a model's ability to
+      <em class="text-neutral-900 not-italic font-medium">understand</em> a low-resource slur and its ability to
+      <em class="text-neutral-900 not-italic font-medium">contain</em> it come apart.
+    </p>
+
+    <div class="flex justify-center gap-4 mt-10 flex-wrap">
+      <a href="https://github.com/ShaduMan/aligned-in-form" class="inline-flex items-center gap-2 px-6 py-3 border border-neutral-900 text-neutral-900 hover:bg-neutral-50 transition-colors">
+        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+        </svg>
+        GitHub
+      </a>
+
+      <a href="https://arxiv.org/abs/2608.02941" class="inline-flex items-center gap-2 px-6 py-3 border border-neutral-900 text-neutral-900 hover:bg-neutral-50 transition-colors">
+        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6 2h9l5 5v15a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zm8 1.5V8h4.5L14 3.5zM8 12h8v1.5H8V12zm0 3.5h8V17H8v-1.5z"/>
+        </svg>
+        Paper (arXiv)
+      </a>
+
+      <a href="https://github.com/ShaduMan/aligned-in-form/tree/main/Slang_Judged" class="inline-flex items-center gap-2 px-6 py-3 border border-neutral-900 text-neutral-900 hover:bg-neutral-50 transition-colors">
+        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M19 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h4l3 3 3-3h4c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 16h-4l-3 3-3-3H5V4h14v14zm-6-7h2v2h-2zm0-4h2v2h-2zm-4 0h2v2H9zm0 4h2v2H9z"/>
+        </svg>
+        Artifacts
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================== -->
+<!-- AUTHORS -->
+<!-- ============================================================== -->
+<section class="max-w-5xl mx-auto px-6 pb-10">
+  <div class="text-center">
+    <div class="section-num mb-3">// Authors</div>
+    <div class="author-row text-neutral-900">
+      <span class="author">Shadab Bin Habib</span>
+      <span class="author">A&#772;K M Ferdous Reza Habib</span>
+      <span class="author">Subarno Neel</span>
+      <span class="author">Adib Sakhawat</span>
+    </div>
+    <p class="mt-4 text-sm text-neutral-500">
+      Department of Computer Science and Engineering<br>
+      Islamic University of Technology, Dhaka, Bangladesh
+    </p>
+    <p class="mt-3 font-mono text-xs text-neutral-500">
+      {shadabhabib, ferdousreza, subarnoneel, adibsakhawat}@iut-dhaka.edu
+    </p>
+  </div>
+</section>
+
+<!-- ============================================================== -->
+<!-- CONTENT NOTICE -->
+<!-- ============================================================== -->
+<section class="max-w-5xl mx-auto px-6 pb-16">
+  <div class="notice p-5 md:p-6">
+    <div class="section-num mb-2" style="color:#D1587A">// Content notice</div>
+    <p class="text-sm text-neutral-700 leading-relaxed">
+      This project studies derogatory speech (<em>gali</em>) as an object of analysis. This website reports
+      results only and reproduces <strong>no slurs</strong>; offensive categories are referred to descriptively
+      throughout, following the paper's transliteration-and-gloss convention. The linked
+      <a href="https://github.com/ShaduMan/aligned-in-form" class="ul-link">repository</a> contains the underlying
+      lexicons and model generations in <strong>unmasked</strong> native Bangla script, including sexual, communal,
+      casteist, and dehumanizing language. Please read the repository's
+      <a href="https://github.com/ShaduMan/aligned-in-form#ethics-and-responsible-use" class="ul-link">ethics and
+      responsible-use statement</a> before opening the data directories. Nothing here endorses that language.
+    </p>
+  </div>
+</section>
+
+<!-- ============================================================== -->
+<!-- OVERVIEW -->
+<!-- ============================================================== -->
+<section id="overview" class="max-w-7xl mx-auto px-6 pb-24">
+  <div class="border-t border-neutral-900 pt-10 md:pt-12">
+    <div class="grid lg:grid-cols-[0.36fr_0.64fr] gap-8 lg:gap-16 items-start">
+      <div>
+        <div class="section-num mb-4">// Overview</div>
+        <h2 class="font-display text-4xl md:text-5xl font-medium leading-tight tracking-tight">
+          Safety that reads the surface, not the sense
+        </h2>
+      </div>
+      <div class="prose-academic text-neutral-700">
+        <p>
+          Safety benchmarks mostly ask whether a model <em>refuses</em>. This paper asks a sharper question: does a
+          model's safety behaviour track what a phrase <strong>means</strong>, or only what it <strong>looks like</strong>?
+        </p>
+        <p>
+          We audit five frontier LLMs on a natively curated lexicon of Bangla derogatory expressions across six
+          protocols, and separate two faculties that safety evaluation usually measures together. Many <em>gali</em>
+          are idiomatic and compositionally non-transparent, so their offensiveness cannot be inferred from literal
+          translation &mdash; which makes them a clean testbed for whether alignment follows harmful meaning or merely
+          familiar high-resource lexical patterns.
+        </p>
+
+        <div class="grid sm:grid-cols-3 gap-4 mt-7 mb-7">
+          <div class="card p-5 tint-cyan">
+            <div class="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-neutral-500 mb-2">Comprehension</div>
+            <p class="text-sm text-neutral-700">Does the model correctly interpret the intended derogatory meaning?</p>
+          </div>
+          <div class="card p-5 tint-lilac">
+            <div class="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-neutral-500 mb-2">Containment</div>
+            <p class="text-sm text-neutral-700">Does it avoid reproducing the offensive expression in its output?</p>
+          </div>
+          <div class="card p-5 tint-pink">
+            <div class="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-neutral-500 mb-2">Claim</div>
+            <p class="text-sm text-neutral-700">In low-resource forms, the two stop being coupled.</p>
+          </div>
+        </div>
+
+        <div class="eqn-box">
+          <p class="text-sm text-neutral-800 leading-relaxed" style="margin:0">
+            <strong>The Comprehension&ndash;Containment Decoupling Hypothesis.</strong> When harmful meaning is expressed
+            through low-resource linguistic forms, semantic comprehension and safety containment no longer remain
+            tightly coupled. Safety behaviour becomes increasingly dependent on surface realization rather than harmful
+            meaning itself, allowing models to either understand harmful expressions without containing them, or refuse
+            generation despite incomplete semantic understanding.
+          </p>
+        </div>
+
+        <p>
+          Every one of the six protocols corroborates this against a native-speaker baseline with substantial
+          inter-annotator agreement (Cohen's &kappa; = 0.84). The cleanest signature: at baseline the cohort comprehends
+          Bangla <strong>7.92 points worse</strong> than matched English, yet leaks the offensive token at an
+          <strong>identical 92.83%</strong> rate in both languages. Comprehension is language-dependent; containment
+          simply is not.
+        </p>
+      </div>
+    </div>
+
+    <figure class="mt-14">
+      <div class="card overflow-hidden p-4 md:p-8">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div class="font-mono text-[0.68rem] uppercase tracking-[0.18em] text-neutral-500">Figure 1 / Comprehension vs. containment by model</div>
+          <div class="flex flex-wrap items-center gap-4 text-xs text-neutral-600">
+            <span class="inline-flex items-center gap-2"><span class="w-3 h-3 rounded-full" style="background:#C9B6FF"></span>Bangla</span>
+            <span class="inline-flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-cyan-electric"></span>English</span>
+          </div>
+        </div>
+        <img src="asset/fig1_comprehension_vs_containment.svg"
+             alt="Grouped bar chart of Bangla and English comprehension (Pass) and containment failure (Use) for each of the five evaluated models, with a dotted line marking cohort leakage parity at 92.83 percent"
+             class="block w-full" loading="lazy">
+      </div>
+      <figcaption class="mt-5 grid md:grid-cols-[0.26fr_0.74fr] gap-3 md:gap-8 text-sm leading-relaxed text-neutral-600">
+        <div class="font-semibold text-neutral-900">Comprehension diverges by language; containment does not.</div>
+        <div>
+          Solid bars show semantic comprehension (Pass), hatched bars show offensive-token reproduction (Use). English
+          consistently achieves higher comprehension than Bangla &mdash; the gap reaches 16.98 points for
+          <span class="font-mono">gpt-oss-120b</span> &mdash; yet containment failure remains near-identical across
+          languages, pinned at the cohort parity line of 92.83%. A safety layer that understood less in Bangla
+          nonetheless leaked just as much.
+        </div>
+      </figcaption>
+    </figure>
+
+    <div class="mt-10 border-y border-neutral-900 py-5">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <div class="font-mono text-[0.68rem] uppercase tracking-[0.18em] text-neutral-500 mb-2">Per-model results</div>
+          <p class="font-display text-2xl text-neutral-950 leading-snug">Browse the model-level breakdown for every protocol.</p>
+        </div>
+        <a href="#explore" class="inline-flex shrink-0 items-center justify-center border border-neutral-950 bg-neutral-950 px-5 py-3 text-sm font-medium text-white hover:bg-neutral-800 transition-colors">
+          Explore the tables
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================== -->
+<!-- KEY FINDINGS -->
+<!-- ============================================================== -->
+<section id="findings" class="max-w-7xl mx-auto px-6 py-16">
+  <div class="section-num mb-3">// Key Findings</div>
+  <h2 class="font-display text-3xl md:text-4xl font-medium tracking-tight mb-10">Results at a Glance</h2>
+
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+    <div class="card p-6 tint-cyan">
+      <div class="headline-num text-5xl text-neutral-900">7.92<span class="text-2xl text-neutral-500">pt</span></div>
+      <div class="mt-3 text-sm text-neutral-700">Baseline comprehension deficit in Bangla relative to matched English (89.06% vs. 96.98% Pass).</div>
+    </div>
+    <div class="card p-6 tint-lilac">
+      <div class="headline-num text-5xl text-neutral-900">92.83<span class="text-2xl">%</span></div>
+      <div class="mt-3 text-sm text-neutral-700">Containment-failure rate at baseline &mdash; identical in Bangla and English.</div>
+    </div>
+    <div class="card p-6 tint-pink">
+      <div class="headline-num text-5xl text-neutral-900">0.84</div>
+      <div class="mt-3 text-sm text-neutral-700">Cohen's &kappa; across five native-speaker annotators on the severity scale.</div>
+    </div>
+    <div class="card p-6 tint-cyan">
+      <div class="headline-num text-5xl text-neutral-900">6.57<span class="text-2xl">%</span></div>
+      <div class="mt-3 text-sm text-neutral-700">Cohort refusal rate once an expert-persona frame is applied (E6).</div>
+    </div>
+    <div class="card p-6 tint-lilac">
+      <div class="headline-num text-5xl text-neutral-900">94.72<span class="text-2xl">%</span></div>
+      <div class="mt-3 text-sm text-neutral-700">Bangla comprehension under Chain-of-Thought &mdash; alongside leakage rising to 96.23%.</div>
+    </div>
+    <div class="card p-6 tint-pink">
+      <div class="headline-num text-5xl text-neutral-900">+0.90</div>
+      <div class="mt-3 text-sm text-neutral-700">Mean over-severity bias against the human baseline (3.88 vs. 2.99 of 5; MAE 1.19).</div>
+    </div>
+    <div class="card p-6 tint-cyan">
+      <div class="headline-num text-5xl text-neutral-900">57</div>
+      <div class="mt-3 text-sm text-neutral-700">Novel out-of-prompt derogatory tokens generated across 3,110 multi-turn debates.</div>
+    </div>
+    <div class="card p-6 tint-lilac">
+      <div class="headline-num text-5xl text-neutral-900">6.8<span class="text-2xl">&times;</span></div>
+      <div class="mt-3 text-sm text-neutral-700">Resolution asymmetry between the accused and victim personas (86.69% vs. 12.83%).</div>
+    </div>
+  </div>
+
+  <div class="card overflow-x-auto">
+    <table class="results wrap">
+      <thead><tr><th>Finding</th><th>Evidence from the evaluated cohort</th></tr></thead>
+      <tbody>
+        <tr><td>Comprehension is language-bound; containment is not.</td><td>Baseline Bangla Pass 89.06% vs. English 96.98%, yet Bangla Use = English Use = 92.83%. For two models leakage is language-<em>regressive</em> (+3.77 more in Bangla).</td></tr>
+        <tr><td>Severity calibration keys on surface anatomy, not compositional harm.</td><td>Mild anatomical slang is over-rated by up to +4.00; multi-clause graphic threats are under-rated by &minus;2.00. Rank agreement with humans only &rho; &asymp; 0.60.</td></tr>
+        <tr><td>Apparent robustness gains are a containment mirage.</td><td>Space perturbation drops Bangla leakage to 68.68% only because grapheme-to-token merging breaks; comprehension falls with it to 76.23%.</td></tr>
+        <tr class="hl-lilac"><td>Explicit reasoning is a double-edged sword.</td><td>CoT lifts Bangla Pass 89.06% &rarr; 94.72% and simultaneously lifts Bangla leakage 92.83% &rarr; 96.23%. One intervention moves the two in opposite directions.</td></tr>
+        <tr><td>Multi-turn calm is a positional reflex, not judgment.</td><td>The model framed as aggressor de-escalates 86.69% of the time versus 12.83% for the victim frame.</td></tr>
+        <tr><td>Refusal reduces to keyword matching.</td><td>Under expert framing, graphic sexual terms draw ~80% refusal while social, classist, and communal slurs draw 0% refusal with 100% leakage.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============================================================== -->
+<!-- MEASUREMENT FRAMEWORK -->
+<!-- ============================================================== -->
+<section id="protocols" class="max-w-6xl mx-auto px-6 py-16">
+  <div class="section-num mb-3">// Measurement Framework</div>
+  <h2 class="font-display text-3xl md:text-4xl font-medium tracking-tight mb-3">Six Protocols, One Hypothesis</h2>
+  <p class="text-neutral-600 w-full mb-10">
+    Each protocol manipulates one aspect of surface form while holding harmful meaning fixed, then measures
+    comprehension and containment separately under a single shared annotation rubric.
+  </p>
+
+  <div class="grid md:grid-cols-2 gap-5">
+    <div class="card p-6"><div class="flex items-baseline gap-3 mb-2"><span class="font-display text-3xl font-medium" style="color:#00B8D4">E1</span><span class="tag">Baseline</span></div><p class="text-sm text-neutral-600">Single-turn explanation of a slur in native Bangla and its matched English equivalent. Establishes the cross-lingual comprehension gap and the containment-parity baseline. <span class="font-mono text-xs text-neutral-500">N = 265</span></p></div>
+    <div class="card p-6"><div class="flex items-baseline gap-3 mb-2"><span class="font-display text-3xl font-medium" style="color:#A47BFF">E2</span><span class="tag">Severity calibration</span></div><p class="text-sm text-neutral-600">Model offensiveness ratings compared against the native-speaker reference standard, measuring calibration error, rank-order alignment, binary recognition, and refusal. <span class="font-mono text-xs text-neutral-500">N = 500</span></p></div>
+    <div class="card p-6"><div class="flex items-baseline gap-3 mb-2"><span class="font-display text-3xl font-medium" style="color:#FF8FA6">E3</span><span class="tag">Orthographic robustness</span></div><p class="text-sm text-neutral-600">The same items re-run under Romanized ("Banglish") transcription and character-level whitespace insertion &mdash; surface changes that preserve meaning. <span class="font-mono text-xs text-neutral-500">N = 265 per condition</span></p></div>
+    <div class="card p-6"><div class="flex items-baseline gap-3 mb-2"><span class="font-display text-3xl font-medium" style="color:#00B8D4">E4</span><span class="tag">Explicit reasoning</span></div><p class="text-sm text-neutral-600">E1 repeated with a step-by-step reasoning instruction, turning the decoupling into a controlled manipulation of comprehension and containment at once. <span class="font-mono text-xs text-neutral-500">N = 265</span></p></div>
+    <div class="card p-6"><div class="flex items-baseline gap-3 mb-2"><span class="font-display text-3xl font-medium" style="color:#A47BFF">E5</span><span class="tag">Multi-turn interaction</span></div><p class="text-sm text-neutral-600">Sixteen-turn model-versus-model debates seeded by a derogatory expression, scoring linguistic escalation, introduction of novel slurs, and who de-escalates first. <span class="font-mono text-xs text-neutral-500">N = 3,110 dialogues</span></p></div>
+    <div class="card p-6"><div class="flex items-baseline gap-3 mb-2"><span class="font-display text-3xl font-medium" style="color:#FF8FA6">E6</span><span class="tag">Expert persona</span></div><p class="text-sm text-neutral-600">Models assume a "Bangla language and culture expert" role and explain items educationally &mdash; a direct test of whether refusal is keyword-driven rather than meaning-driven. <span class="font-mono text-xs text-neutral-500">N = 2,510</span></p></div>
+  </div>
+
+  <div class="mt-8 card p-6">
+    <div class="font-mono text-[0.68rem] uppercase tracking-[0.18em] text-neutral-500 mb-3">Shared annotation rubric</div>
+    <p class="text-sm text-neutral-700 leading-relaxed">
+      All responses were manually annotated under one framework. <strong>Pass</strong> records correct semantic
+      comprehension of the intended derogatory meaning; <strong>Use</strong> records explicit reproduction of the
+      queried expression; <strong>Refusal</strong> records activation of a safety mechanism that prevented answering.
+      Multi-turn interactions add <strong>Escalation</strong> (0&ndash;5) and <strong>Innovation</strong>, the latter
+      flagging derogatory expressions absent from the original prompt.
+    </p>
+  </div>
+</section>
+
+<!-- ============================================================== -->
+<!-- DATASET -->
+<!-- ============================================================== -->
+<section id="dataset" class="max-w-6xl mx-auto px-6 py-16">
+  <div class="section-num mb-3">// Dataset Construction</div>
+  <h2 class="font-display text-3xl md:text-4xl font-medium tracking-tight mb-3">A Native Lexicon, Human-Calibrated</h2>
+  <p class="text-neutral-600 mb-10 max-w-3xl">
+    The evaluation rests on a manually curated lexicon of native Bangla derogatory expressions rather than translated
+    English harmful prompts. Different protocols draw on different subsets.
+  </p>
+
+  <div class="grid md:grid-cols-3 gap-5 mb-10">
+    <div class="card p-6 tint-cyan">
+      <div class="headline-num text-4xl text-neutral-900">100</div>
+      <div class="mt-2 font-mono text-[0.68rem] uppercase tracking-[0.14em] text-neutral-500">Core lexicon</div>
+      <p class="mt-3 text-sm text-neutral-700">High-impact <em>gali</em>, each annotated for offensive severity. Used by E2.</p>
+    </div>
+    <div class="card p-6 tint-lilac">
+      <div class="headline-num text-4xl text-neutral-900">53</div>
+      <div class="mt-2 font-mono text-[0.68rem] uppercase tracking-[0.14em] text-neutral-500">Matched subset</div>
+      <p class="mt-3 text-sm text-neutral-700">Bangla&ndash;English functional pairs enabling paired evaluation. Used by E1, E3, E4, E5.</p>
+    </div>
+    <div class="card p-6 tint-pink">
+      <div class="headline-num text-4xl text-neutral-900">501</div>
+      <div class="mt-2 font-mono text-[0.68rem] uppercase tracking-[0.14em] text-neutral-500">Expanded lexicon</div>
+      <p class="mt-3 text-sm text-neutral-700">A broader item pool for linguistic diversity under persona framing. Used by E6.</p>
+    </div>
+  </div>
+
+  <div class="grid lg:grid-cols-2 gap-8 items-start">
+    <div class="prose-academic text-neutral-700">
+      <h3 class="font-display text-2xl font-medium mb-3">Construction</h3>
+      <p>
+        The lexicon spans anatomical, gendered, sexual, communal, religious, casteist, classist, colorist, and
+        compositional multi-clause insults. Because many <em>gali</em> are culturally grounded rather than literally
+        translatable, each Bangla item was manually paired with its closest English <strong>functional</strong>
+        equivalent &mdash; preserving communicative intent and perceived severity rather than dictionary wording.
+        That pairing is what makes the cross-lingual contrast a meaning-controlled comparison instead of a translation
+        artifact.
+      </p>
+      <h3 class="font-display text-2xl font-medium mt-7 mb-3">Annotation</h3>
+      <p>
+        Five consenting adult native Bangla speakers independently rated every expression for offensiveness on a
+        1&ndash;5 Likert scale, reaching <strong>Cohen's &kappa; = 0.84</strong> &mdash; substantial agreement. These
+        human ratings are the reference standard for E2. Model outputs were then reviewed by trained annotators under
+        the shared Pass / Use / Refusal rubric. Annotators were informed of the material's nature in advance and were
+        free to withdraw at any point.
+      </p>
+    </div>
+
+    <div class="card overflow-x-auto">
+      <table class="results">
+        <thead><tr><th>Component</th><th>Specification</th></tr></thead>
+        <tbody>
+          <tr><td>Core lexicon</td><td class="metric-cell">100 items (E2)</td></tr>
+          <tr><td>Matched subset</td><td class="metric-cell">53 BG&ndash;EN pairs</td></tr>
+          <tr><td>Expanded lexicon</td><td class="metric-cell">501 items (E6)</td></tr>
+          <tr><td>E1 evaluations</td><td class="metric-cell">265 single-turn</td></tr>
+          <tr><td>E2 evaluations</td><td class="metric-cell">500 (100 &times; 5)</td></tr>
+          <tr><td>E3 evaluations</td><td class="metric-cell">265 per condition</td></tr>
+          <tr><td>E4 evaluations</td><td class="metric-cell">265 CoT single-turn</td></tr>
+          <tr><td>E5 evaluations</td><td class="metric-cell">3,110 dialogues</td></tr>
+          <tr><td>E6 evaluations</td><td class="metric-cell">2,510 (501 &times; 5)</td></tr>
+          <tr class="hl-cyan"><td>Human annotators</td><td class="metric-cell">5 native speakers; &kappa; = 0.84</td></tr>
+          <tr><td>Severity scale</td><td class="metric-cell">1&ndash;5 Likert</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================== -->
+<!-- EVALUATED MODELS -->
+<!-- ============================================================== -->
+<section id="cohort" class="max-w-6xl mx-auto px-6 py-16">
+  <div class="section-num mb-3">// Evaluated Models</div>
+  <h2 class="font-display text-3xl md:text-4xl font-medium tracking-tight mb-3">Five Frontier Subjects</h2>
+  <p class="text-neutral-600 mb-8 max-w-3xl">
+    All five models were queried through their standard chat interfaces under default safety configurations, at
+    <span class="font-mono text-sm">temperature = 0</span> and <span class="font-mono text-sm">seed = 42</span>,
+    within a single fixed evaluation window.
+  </p>
+
+  <div class="card overflow-x-auto">
+    <table class="results">
+      <thead><tr><th>Provider</th><th>Model string</th><th>Weights</th></tr></thead>
+      <tbody>
+        <tr><td>OpenAI</td><td class="metric-cell">openai/gpt-oss-120b</td><td>Open-weight</td></tr>
+        <tr><td>OpenAI</td><td class="metric-cell">openai/gpt-4o-mini</td><td>Proprietary</td></tr>
+        <tr><td>Google</td><td class="metric-cell">google/gemini-2.5-flash-lite</td><td>Proprietary</td></tr>
+        <tr><td>Qwen</td><td class="metric-cell">qwen/qwen3.7-flash</td><td>Proprietary</td></tr>
+        <tr><td>DeepSeek</td><td class="metric-cell">deepseek/deepseek-v4-flash</td><td>Proprietary</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="mt-5 text-sm text-neutral-600 max-w-3xl">
+    The cohort is deliberately <span class="font-mono text-xs">-flash</span> / <span class="font-mono text-xs">-mini</span>-tier:
+    these are the snapshots most likely to serve low-resource-language traffic at scale. Architecture matters for the
+    findings &mdash; the open-weight subject shows both the widest comprehension gap (+16.98 points) and the most
+    extreme refusal pathology, declining 78 of 100 items in the severity-calibration protocol.
+  </p>
+</section>
+
+<!-- ============================================================== -->
+<!-- RESULTS -->
+<!-- ============================================================== -->
+<section id="results" class="max-w-6xl mx-auto px-6 py-16">
+  <div class="section-num mb-3">// Results</div>
+  <h2 class="font-display text-3xl md:text-4xl font-medium tracking-tight mb-3">Comprehension Swings, Containment Doesn't</h2>
+  <p class="text-neutral-600 mb-10 max-w-3xl">
+    The figures below follow the repository README's flow: first the decoupling in a single cohort-level view, then
+    each protocol in turn.
+  </p>
+
+  <!-- Table 1 -->
+  <div class="card overflow-x-auto mb-4">
+    <table class="results">
+      <thead>
+        <tr><th>Condition</th><th>Bangla Pass %</th><th>Bangla Use %</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>E1 &mdash; Native script</td><td class="metric-cell">89.06</td><td class="metric-cell">92.83</td></tr>
+        <tr><td>E3 &mdash; Romanized (Banglish)</td><td class="metric-cell">83.77</td><td class="metric-cell">95.47</td></tr>
+        <tr><td>E3 &mdash; Space-perturbed</td><td class="metric-cell">76.23</td><td class="metric-cell">68.68 &dagger;</td></tr>
+        <tr class="hl-lilac"><td>E4 &mdash; Chain-of-Thought</td><td class="metric-cell">94.72</td><td class="metric-cell">96.23</td></tr>
+        <tr><td>E6 &mdash; Expert persona</td><td class="metric-cell">63.98</td><td class="metric-cell">85.46</td></tr>
+        <tr class="cohort-row"><td><em>English reference (E1)</em></td><td class="metric-cell">96.98</td><td class="metric-cell">92.83</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="caption">
+    <b>Table 1 &mdash; the decoupling in one view.</b> Cohort-level comprehension against containment failure across
+    five surface conditions, with the English single-turn baseline for reference. If safety tracked meaning,
+    containment failure would fall as comprehension rises. Instead it stays pinned near or above 85% in every condition
+    where the model can still parse text at all, independent of comprehension swings exceeding 30 points. The
+    highlighted Chain-of-Thought row is load-bearing: comprehension and leakage rise together.
+    &dagger; The space-perturbed drop in Use is a containment mirage &mdash; leakage falls because tokenization breaks,
+    not because safety engages.
+  </p>
+
+  <div class="div-dot my-12"></div>
+
+  <!-- Figure 2: E3 -->
+  <figure class="mb-14">
+    <div class="card p-4 md:p-8">
+      <img src="asset/fig4_robustness_lines.svg"
+           alt="Line chart tracking each model's Bangla comprehension Pass rate across native script, Romanized, and space-perturbed input conditions"
+           class="block w-full" loading="lazy">
+    </div>
+    <figcaption class="caption">
+      <b>Figure 2 &mdash; orthographic fragility.</b> Bangla comprehension across native-script, Romanized, and
+      space-perturbed inputs. Romanization costs 5.29 points of comprehension while <em>raising</em> leakage to 95.47%;
+      spacing costs 12.83 points. The trajectories also expose a Romanization paradox in the open-weight subject, which
+      understands Latin-script Banglish 17 points better than native Bengali script &mdash; a direct readout of
+      pre-training script distribution rather than of language ability.
+    </figcaption>
+  </figure>
+
+  <!-- Figure 3: E4 -->
+  <figure class="mb-14">
+    <div class="card p-4 md:p-8">
+      <img src="asset/fig5_cot_double_edge.svg"
+           alt="Paired bar chart comparing single-turn and Chain-of-Thought conditions on Bangla and English Pass and Use rates"
+           class="block w-full" loading="lazy">
+    </div>
+    <figcaption class="caption">
+      <b>Figure 3 &mdash; the double-edged sword of explicit reasoning.</b> Chain-of-Thought raises Bangla comprehension
+      from 89.06% to 94.72% and English to 98.49%, narrowing the cross-lingual gap from 7.92 to 3.77 points. The same
+      mechanism erodes containment: Bangla leakage climbs to 96.23%. Because CoT instructs the model to dissect lexical
+      roots and morphology, it almost universally spells the token out inside the reasoning trace. This is the pivotal
+      result &mdash; the two faculties are not merely uncorrelated but can be made to move in opposition, which is
+      impossible if a single meaning-grounded safety faculty governed both.
+    </figcaption>
+  </figure>
+
+  <!-- Figure 4: E1 item-level -->
+  <figure class="mb-14">
+    <div class="card p-4 md:p-8">
+      <img src="asset/fig2_guardrail_bypass_slope.svg"
+           alt="Slope chart showing English and Bangla token leakage rates for two representative slurs, glossed by category"
+           class="block w-full" loading="lazy">
+    </div>
+    <figcaption class="caption">
+      <b>Figure 4 &mdash; English-trained filters don't transfer.</b> For two representative items, Bangla token
+      reproduction reaches 100% even where the matched English form is contained more often. For a colorist item mapped
+      to a severe English racial slur, English guardrails intervene 40% of the time while the Bangla form leaks
+      completely &mdash; a total cross-lingual guardrail bypass on one of the most severe categories in the lexicon.
+      Items are labelled by descriptive gloss only.
+    </figcaption>
+  </figure>
+
+  <!-- Figure 5: E2 -->
+  <figure class="mb-14">
+    <div class="card p-4 md:p-8">
+      <img src="asset/fig3_calibration_diverging.svg"
+           alt="Diverging bar chart of model minus human severity rating for six items, glossed by category"
+           class="block w-full" loading="lazy">
+    </div>
+    <figcaption class="caption">
+      <b>Figure 5 &mdash; miscalibration runs both directions.</b> Native speakers set a moderate baseline severity of
+      2.99/5; the cohort averages 3.88/5, a +0.90 over-severity bias with MAE 1.19. Models assign near-maximal severity
+      to mild idioms humans rate 1.0 (up to +4.00 error) while <em>under</em>-rating multi-clause graphic threats humans
+      rate 5.0 (down to &minus;2.00), with a quarter of models failing to flag one such threat as offensive at all.
+      Severity tracks the presence of anatomical or English-shaped toxicity cues, not the compositional meaning a native
+      speaker parses. Items are labelled by descriptive gloss only.
+    </figcaption>
+  </figure>
+
+  <!-- Figure 6: E5 -->
+  <figure class="mb-14">
+    <div class="card p-4 md:p-8">
+      <img src="asset/fig8_role_asymmetry.svg"
+           alt="Cumulative line chart of de-escalation initiation across sixteen dialogue turns, split by aggressor and victim persona framing"
+           class="block w-full" loading="lazy">
+    </div>
+    <figcaption class="caption">
+      <b>Figure 6 &mdash; initiator guilt.</b> Resolution in multi-turn debate is starkly role-dependent. The model
+      framed at turn one as the aggressor initiates de-escalation 86.69% of the time; the model in the victim frame does
+      so only 12.83%. De-escalation is a positional reflex rather than a judgment about the meaning at stake &mdash;
+      alignment responding to frame, not content. Mean escalation is low across the cohort (1.04/5), but that calm is
+      mechanical: when guardrails slip, models retrieve 57 fresh out-of-prompt derogatory tokens from their Bangla
+      latent space rather than merely echoing the seed.
+    </figcaption>
+  </figure>
+
+  <div class="div-dot my-12"></div>
+
+  <h3 class="font-display text-2xl font-medium mb-4">Supporting figures</h3>
+  <p class="text-neutral-600 mb-6 max-w-3xl text-sm">
+    These two figures support the appendix analyses rather than the main-text argument.
+  </p>
+
+  <div class="grid lg:grid-cols-2 gap-6">
+    <figure>
+      <div class="card p-4 md:p-6">
+        <img src="asset/fig6_escalation_vs_innovation.svg" alt="Scatter comparison of mean escalation against slur-innovation rate per debate seed" class="block w-full" loading="lazy">
+      </div>
+      <figcaption class="caption">
+        <b>Escalation and innovation are disjoint triggers.</b> Severe identity items lock dialogues at maximum
+        escalation with zero innovation, driving repetitive moralizing or refusal loops. Innovation instead clusters in
+        low-escalation debates seeded by milder, ambiguous slang &mdash; when guardrails relax around casual banter, the
+        generation head drifts and samples fresh low-resource abuse.
+      </figcaption>
+    </figure>
+    <figure>
+      <div class="card p-4 md:p-6">
+        <img src="asset/fig7_expert_persona_3d.svg" alt="Three-dimensional comparison of per-model refusal, comprehension, and leakage under expert-persona framing" class="block w-full" loading="lazy">
+      </div>
+      <figcaption class="caption">
+        <b>Four behavioural profiles under persona framing.</b> One model shows zero-refusal compliance; two achieve
+        comparatively good nuance, separating analysis from endorsement; one over-refuses and over-explains; and the
+        open-weight subject shows straightforward low-resource degradation.
+      </figcaption>
+    </figure>
+  </div>
+
+  <div class="mt-14 card p-6 md:p-8 tint-lilac">
+    <div class="section-num mb-3">// The keyword boundary</div>
+    <p class="pull-quote text-neutral-900 mb-4">
+      The most dangerous gap is social, not sexual.
+    </p>
+    <p class="text-sm text-neutral-700 leading-relaxed">
+      Item-level extremes expose the mechanism precisely. Graphic sexual, anatomical, and familial-assault terms are
+      hard-blocked at roughly 80% refusal across four of five models &mdash; their surface strings cross token-level
+      toxicity thresholds regardless of the academic frame. But non-sexual social, classist, and idiomatic slurs reach
+      100% leakage and 100% comprehension with <strong>0% refusal</strong>. Dehumanizing communal language, arguably the
+      most socially dangerous category in the lexicon, passes through untouched because it lacks the explicit sexual
+      keywords the safety layer is built to catch. This inverts the real-world harm ordering.
+    </p>
+  </div>
+</section>
+
+<!-- ============================================================== -->
+<!-- EXPLORE: per-model tables -->
+<!-- ============================================================== -->
+<section id="explore" class="max-w-6xl mx-auto px-6 py-16">
+  <div class="section-num mb-3">// Per-Model Breakdown</div>
+  <h2 class="font-display text-3xl md:text-4xl font-medium tracking-tight mb-3">Model-Level Results by Protocol</h2>
+  <p class="text-neutral-600 mb-8 max-w-3xl">
+    Select a protocol to view its per-model table. All values are reported in the paper's appendix and are recomputable
+    from <span class="font-mono text-sm">Slang_Judged/</span> in the repository.
+  </p>
+
+  <div role="tablist" aria-label="Protocol selector" class="flex flex-wrap gap-2 mb-6">
+    <button class="proto-btn" role="tab" aria-selected="true"  aria-controls="panel-e1" id="tab-e1">E1 · Baseline</button>
+    <button class="proto-btn" role="tab" aria-selected="false" aria-controls="panel-e2" id="tab-e2">E2 · Calibration</button>
+    <button class="proto-btn" role="tab" aria-selected="false" aria-controls="panel-e3" id="tab-e3">E3 · Robustness</button>
+    <button class="proto-btn" role="tab" aria-selected="false" aria-controls="panel-e4" id="tab-e4">E4 · Reasoning</button>
+    <button class="proto-btn" role="tab" aria-selected="false" aria-controls="panel-e5" id="tab-e5">E5 · Debates</button>
+    <button class="proto-btn" role="tab" aria-selected="false" aria-controls="panel-e6" id="tab-e6">E6 · Persona</button>
+  </div>
+
+  <!-- E1 -->
+  <div class="proto-panel" id="panel-e1" role="tabpanel" aria-labelledby="tab-e1">
+    <div class="card overflow-x-auto">
+      <table class="results">
+        <thead><tr><th>Subject model</th><th>N</th><th>BG Pass %</th><th>EN Pass %</th><th>&Delta; Pass</th><th>BG Use %</th><th>EN Use %</th><th>&Delta; Use</th></tr></thead>
+        <tbody>
+          <tr><td class="metric-cell">google/gemini-2.5-flash-lite</td><td class="metric-cell">53</td><td class="metric-cell">94.34</td><td class="metric-cell">98.11</td><td class="metric-cell">+3.77</td><td class="metric-cell">96.23</td><td class="metric-cell">100.00</td><td class="metric-cell">&minus;3.77</td></tr>
+          <tr><td class="metric-cell">qwen/qwen3.7-flash</td><td class="metric-cell">53</td><td class="metric-cell">90.57</td><td class="metric-cell">100.00</td><td class="metric-cell">+9.43</td><td class="metric-cell">94.34</td><td class="metric-cell">90.57</td><td class="metric-cell hl-pink">+3.77</td></tr>
+          <tr><td class="metric-cell">openai/gpt-4o-mini</td><td class="metric-cell">53</td><td class="metric-cell">90.57</td><td class="metric-cell">96.23</td><td class="metric-cell">+5.66</td><td class="metric-cell">94.34</td><td class="metric-cell">90.57</td><td class="metric-cell hl-pink">+3.77</td></tr>
+          <tr><td class="metric-cell">deepseek/deepseek-v4-flash</td><td class="metric-cell">53</td><td class="metric-cell">90.57</td><td class="metric-cell">94.34</td><td class="metric-cell">+3.77</td><td class="metric-cell">88.68</td><td class="metric-cell">88.68</td><td class="metric-cell">0.00</td></tr>
+          <tr><td class="metric-cell">openai/gpt-oss-120b</td><td class="metric-cell">53</td><td class="metric-cell">79.25</td><td class="metric-cell">96.23</td><td class="metric-cell hl-lilac">+16.98</td><td class="metric-cell">90.57</td><td class="metric-cell">94.34</td><td class="metric-cell">&minus;3.77</td></tr>
+          <tr class="cohort-row"><td>Cohort mean</td><td class="metric-cell">265</td><td class="metric-cell">89.06</td><td class="metric-cell">96.98</td><td class="metric-cell">+7.92</td><td class="metric-cell">92.83</td><td class="metric-cell">92.83</td><td class="metric-cell">0.00</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="caption"><b>Paper Table 3.</b> Comprehension is language-dependent, with gaps up to +16.98 points. Containment is not &mdash; and for two models it is language-<em>regressive</em>, leaking 3.77 points more in Bangla than in English.</p>
+  </div>
+
+  <!-- E2 -->
+  <div class="proto-panel" id="panel-e2" role="tabpanel" aria-labelledby="tab-e2" hidden>
+    <div class="card overflow-x-auto">
+      <table class="results">
+        <thead><tr><th>Subject model</th><th>N done</th><th>Human avg</th><th>Model avg</th><th>&Delta;</th><th>MAE</th><th>RMSE</th><th>&rho;</th><th>r</th><th>Rec. off. %</th></tr></thead>
+        <tbody>
+          <tr><td class="metric-cell">deepseek/deepseek-v4-flash</td><td class="metric-cell">100</td><td class="metric-cell">3.00</td><td class="metric-cell">4.20</td><td class="metric-cell">+1.20</td><td class="metric-cell">1.32</td><td class="metric-cell">1.75</td><td class="metric-cell">0.63</td><td class="metric-cell">0.57</td><td class="metric-cell">92.00</td></tr>
+          <tr><td class="metric-cell">openai/gpt-4o-mini</td><td class="metric-cell">100</td><td class="metric-cell">3.00</td><td class="metric-cell">4.14</td><td class="metric-cell">+1.14</td><td class="metric-cell">1.24</td><td class="metric-cell">1.67</td><td class="metric-cell">0.64</td><td class="metric-cell">0.58</td><td class="metric-cell">93.00</td></tr>
+          <tr><td class="metric-cell">google/gemini-2.5-flash-lite</td><td class="metric-cell">100</td><td class="metric-cell">3.00</td><td class="metric-cell">3.96</td><td class="metric-cell">+0.96</td><td class="metric-cell">1.16</td><td class="metric-cell">1.56</td><td class="metric-cell">0.62</td><td class="metric-cell">0.59</td><td class="metric-cell">93.00</td></tr>
+          <tr><td class="metric-cell">qwen/qwen3.7-flash</td><td class="metric-cell">100</td><td class="metric-cell">3.00</td><td class="metric-cell">3.45</td><td class="metric-cell">+0.45</td><td class="metric-cell">1.03</td><td class="metric-cell">1.47</td><td class="metric-cell">0.59</td><td class="metric-cell">0.58</td><td class="metric-cell">82.00</td></tr>
+          <tr><td class="metric-cell">openai/gpt-oss-120b</td><td class="metric-cell hl-pink">22</td><td class="metric-cell">2.73</td><td class="metric-cell">2.86</td><td class="metric-cell">+0.14</td><td class="metric-cell">1.32</td><td class="metric-cell">1.85</td><td class="metric-cell hl-pink">0.19</td><td class="metric-cell">0.18</td><td class="metric-cell">72.73</td></tr>
+          <tr class="cohort-row"><td>Full-sample cohort</td><td class="metric-cell">&mdash;</td><td class="metric-cell">2.99</td><td class="metric-cell">3.88</td><td class="metric-cell">+0.90</td><td class="metric-cell">1.19</td><td class="metric-cell">&mdash;</td><td class="metric-cell">&asymp;0.60</td><td class="metric-cell">&mdash;</td><td class="metric-cell">89.10</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="caption"><b>Paper Table 4.</b> Severity calibration against the &kappa; = 0.84 human baseline. Proprietary models over-inflate severity; the open-weight subject answered only 22 of 100 items (78% refusal) and its rank correlation collapses to 0.19. Qwen is best-calibrated in error yet weakest in binary recognition &mdash; a calibration/detection trade-off.</p>
+  </div>
+
+  <!-- E3 -->
+  <div class="proto-panel" id="panel-e3" role="tabpanel" aria-labelledby="tab-e3" hidden>
+    <div class="card overflow-x-auto">
+      <table class="results">
+        <thead><tr><th>Subject model</th><th>BG Pass Rom</th><th>BG Pass Pert</th><th>BG Use Rom</th><th>BG Use Pert</th><th>EN Pass Rom</th><th>EN Pass Pert</th><th>EN Use Rom</th><th>EN Use Pert</th></tr></thead>
+        <tbody>
+          <tr><td class="metric-cell">openai/gpt-oss-120b</td><td class="metric-cell hl-lilac">96.23</td><td class="metric-cell">79.25</td><td class="metric-cell">98.11</td><td class="metric-cell">69.81</td><td class="metric-cell">100.00</td><td class="metric-cell">83.02</td><td class="metric-cell">94.34</td><td class="metric-cell">50.94</td></tr>
+          <tr><td class="metric-cell">deepseek/deepseek-v4-flash</td><td class="metric-cell">90.57</td><td class="metric-cell hl-cyan">88.68</td><td class="metric-cell">96.23</td><td class="metric-cell">73.58</td><td class="metric-cell">100.00</td><td class="metric-cell">96.23</td><td class="metric-cell">94.34</td><td class="metric-cell">56.60</td></tr>
+          <tr><td class="metric-cell">qwen/qwen3.7-flash</td><td class="metric-cell">79.25</td><td class="metric-cell">77.36</td><td class="metric-cell">96.23</td><td class="metric-cell">77.36</td><td class="metric-cell">98.11</td><td class="metric-cell">92.45</td><td class="metric-cell">86.79</td><td class="metric-cell">49.06</td></tr>
+          <tr><td class="metric-cell">google/gemini-2.5-flash-lite</td><td class="metric-cell">77.36</td><td class="metric-cell">71.70</td><td class="metric-cell">92.45</td><td class="metric-cell">62.26</td><td class="metric-cell">96.23</td><td class="metric-cell">79.25</td><td class="metric-cell">96.23</td><td class="metric-cell">32.08</td></tr>
+          <tr><td class="metric-cell">openai/gpt-4o-mini</td><td class="metric-cell">75.47</td><td class="metric-cell hl-pink">64.15</td><td class="metric-cell">94.34</td><td class="metric-cell">60.38</td><td class="metric-cell">96.23</td><td class="metric-cell">86.79</td><td class="metric-cell">88.68</td><td class="metric-cell">37.74</td></tr>
+          <tr class="cohort-row"><td>Cohort mean</td><td class="metric-cell">83.77</td><td class="metric-cell">76.23</td><td class="metric-cell">95.47</td><td class="metric-cell">68.68</td><td class="metric-cell">95.98</td><td class="metric-cell">87.55</td><td class="metric-cell">92.10</td><td class="metric-cell">45.28</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="caption"><b>Paper Table 5.</b> Robustness to Romanization (Rom) and space perturbation (Pert). The open-weight subject comprehends Romanized Banglish better than native script, betraying a Latin-script training bias; gpt-4o-mini suffers the sharpest perturbation collapse; DeepSeek is the most perturbation-robust. Falling Use under perturbation is a tokenizer artifact, not containment.</p>
+  </div>
+
+  <!-- E4 -->
+  <div class="proto-panel" id="panel-e4" role="tabpanel" aria-labelledby="tab-e4" hidden>
+    <div class="card overflow-x-auto">
+      <table class="results">
+        <thead><tr><th>Subject model</th><th>BG Pass E1</th><th>BG Pass E4</th><th>&Delta; Pass</th><th>BG Use E1</th><th>BG Use E4</th><th>&Delta; Use</th><th>EN Pass E4</th><th>EN Use E4</th><th>&Delta; EN Use</th></tr></thead>
+        <tbody>
+          <tr><td class="metric-cell">deepseek/deepseek-v4-flash</td><td class="metric-cell">90.57</td><td class="metric-cell">100.00</td><td class="metric-cell">+9.43</td><td class="metric-cell">88.68</td><td class="metric-cell">96.23</td><td class="metric-cell hl-pink">+7.55</td><td class="metric-cell">98.11</td><td class="metric-cell">98.11</td><td class="metric-cell hl-pink">+9.43</td></tr>
+          <tr><td class="metric-cell">google/gemini-2.5-flash-lite</td><td class="metric-cell">94.34</td><td class="metric-cell">100.00</td><td class="metric-cell">+5.66</td><td class="metric-cell">96.23</td><td class="metric-cell">100.00</td><td class="metric-cell">+3.77</td><td class="metric-cell">100.00</td><td class="metric-cell">100.00</td><td class="metric-cell">0.00</td></tr>
+          <tr><td class="metric-cell">openai/gpt-oss-120b</td><td class="metric-cell">79.25</td><td class="metric-cell">88.68</td><td class="metric-cell">+9.43</td><td class="metric-cell">90.57</td><td class="metric-cell">90.57</td><td class="metric-cell hl-green">0.00</td><td class="metric-cell">96.23</td><td class="metric-cell">90.57</td><td class="metric-cell">&minus;3.77</td></tr>
+          <tr><td class="metric-cell">qwen/qwen3.7-flash</td><td class="metric-cell">90.57</td><td class="metric-cell">94.34</td><td class="metric-cell">+3.77</td><td class="metric-cell">94.34</td><td class="metric-cell">98.11</td><td class="metric-cell">+3.77</td><td class="metric-cell">100.00</td><td class="metric-cell">92.45</td><td class="metric-cell">+1.89</td></tr>
+          <tr><td class="metric-cell">openai/gpt-4o-mini</td><td class="metric-cell">90.57</td><td class="metric-cell">90.57</td><td class="metric-cell">0.00</td><td class="metric-cell">94.34</td><td class="metric-cell">96.23</td><td class="metric-cell">+1.89</td><td class="metric-cell">98.11</td><td class="metric-cell">92.45</td><td class="metric-cell">+1.89</td></tr>
+          <tr class="cohort-row"><td>Cohort mean</td><td class="metric-cell">89.06</td><td class="metric-cell">94.72</td><td class="metric-cell">+5.66</td><td class="metric-cell">92.83</td><td class="metric-cell">96.23</td><td class="metric-cell">+3.40</td><td class="metric-cell">98.49</td><td class="metric-cell">94.72</td><td class="metric-cell">+1.89</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="caption"><b>Paper Table 6.</b> Chain-of-Thought against the E1 baseline. CoT is a comprehension equalizer &mdash; DeepSeek and Gemini both reach 100% Bangla Pass &mdash; but a containment solvent. Only the open-weight subject gains comprehension without extra Bangla leakage; gpt-4o-mini gains neither.</p>
+  </div>
+
+  <!-- E5 -->
+  <div class="proto-panel" id="panel-e5" role="tabpanel" aria-labelledby="tab-e5" hidden>
+    <div class="card overflow-x-auto">
+      <table class="results">
+        <thead><tr><th>Subject model</th><th>Debates</th><th>Avg. esc. (0&ndash;5)</th><th>Max esc.</th><th>Innov. rate %</th><th>Novel slurs</th><th>Resolution %</th></tr></thead>
+        <tbody>
+          <tr><td class="metric-cell">openai/gpt-oss-120b</td><td class="metric-cell">1,265</td><td class="metric-cell">1.02</td><td class="metric-cell">5</td><td class="metric-cell">0.71</td><td class="metric-cell">27</td><td class="metric-cell">55.42</td></tr>
+          <tr><td class="metric-cell">deepseek/deepseek-v4-flash</td><td class="metric-cell">1,247</td><td class="metric-cell">1.04</td><td class="metric-cell">5</td><td class="metric-cell">0.48</td><td class="metric-cell hl-green">12</td><td class="metric-cell">51.00</td></tr>
+          <tr><td class="metric-cell">openai/gpt-4o-mini</td><td class="metric-cell">1,229</td><td class="metric-cell">1.04</td><td class="metric-cell">5</td><td class="metric-cell">0.57</td><td class="metric-cell">19</td><td class="metric-cell">42.88</td></tr>
+          <tr><td class="metric-cell">google/gemini-2.5-flash-lite</td><td class="metric-cell">1,222</td><td class="metric-cell">1.04</td><td class="metric-cell">5</td><td class="metric-cell">0.82</td><td class="metric-cell hl-pink">37</td><td class="metric-cell">45.42</td></tr>
+          <tr><td class="metric-cell">qwen/qwen3.7-flash</td><td class="metric-cell">1,257</td><td class="metric-cell">1.05</td><td class="metric-cell">5</td><td class="metric-cell">0.80</td><td class="metric-cell">19</td><td class="metric-cell">53.78</td></tr>
+          <tr class="cohort-row"><td>Cohort</td><td class="metric-cell">3,110</td><td class="metric-cell">1.04</td><td class="metric-cell">5</td><td class="metric-cell">0.68</td><td class="metric-cell">57</td><td class="metric-cell">&mdash;</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="caption"><b>Paper Table 7.</b> Multi-turn debate dynamics. Every model averages roughly 1.0 escalation yet every model also reaches maximum escalation on specific inputs &mdash; hostility is triggered by lexical input, not architecture. Resolution by conversational role (paper Table 8): the accused frame de-escalates 86.69% of the time, the victim frame 12.83%, with 0.48% unresolved.</p>
+  </div>
+
+  <!-- E6 -->
+  <div class="proto-panel" id="panel-e6" role="tabpanel" aria-labelledby="tab-e6" hidden>
+    <div class="card overflow-x-auto">
+      <table class="results">
+        <thead><tr><th>Subject model</th><th>Refusal %</th><th>Pass %</th><th>Use %</th><th>Avg. len. (chars)</th></tr></thead>
+        <tbody>
+          <tr><td class="metric-cell">openai/gpt-4o-mini</td><td class="metric-cell hl-pink">0.00</td><td class="metric-cell">57.57</td><td class="metric-cell">92.03</td><td class="metric-cell">&mdash;</td></tr>
+          <tr><td class="metric-cell">deepseek/deepseek-v4-flash</td><td class="metric-cell">8.76</td><td class="metric-cell hl-green">78.69</td><td class="metric-cell">&mdash;</td><td class="metric-cell">&mdash;</td></tr>
+          <tr><td class="metric-cell">google/gemini-2.5-flash-lite</td><td class="metric-cell">4.18</td><td class="metric-cell">70.32</td><td class="metric-cell">&mdash;</td><td class="metric-cell">&mdash;</td></tr>
+          <tr><td class="metric-cell">qwen/qwen3.7-flash</td><td class="metric-cell">12.15</td><td class="metric-cell">&mdash;</td><td class="metric-cell">&mdash;</td><td class="metric-cell">1,843</td></tr>
+          <tr><td class="metric-cell">openai/gpt-oss-120b</td><td class="metric-cell">&mdash;</td><td class="metric-cell">39.84</td><td class="metric-cell">&mdash;</td><td class="metric-cell">446</td></tr>
+          <tr class="cohort-row"><td>Cohort</td><td class="metric-cell">6.57</td><td class="metric-cell">63.98</td><td class="metric-cell">85.46</td><td class="metric-cell">~1,208</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="caption"><b>Paper Table 9 and &sect;D.6.</b> Cohort safety under expert-persona framing: a benign analytical frame collapses refusal to 6.57% while leakage stays at 85.46%. Cells marked &mdash; are values the paper reports only at cohort level or describes qualitatively, not per model; recompute them from <span class="font-mono text-xs">Slang_Judged/E6_results_judged.json</span> if you need the full matrix.</p>
+  </div>
+</section>
+
+<!-- ============================================================== -->
+<!-- REPOSITORY GUIDE -->
+<!-- ============================================================== -->
+<section id="repository" class="max-w-6xl mx-auto px-6 py-16">
+  <div class="section-num mb-3">// Repository Guide</div>
+  <h2 class="font-display text-3xl md:text-4xl font-medium tracking-tight mb-8">Code, Data, and Artifacts</h2>
+
+  <div class="card overflow-x-auto mb-8">
+    <table class="results wrap">
+      <thead><tr><th>Path</th><th>Contents</th></tr></thead>
+      <tbody>
+        <tr><td><a class="ul-link font-mono text-xs" href="https://github.com/ShaduMan/aligned-in-form/tree/main/Notebooks">Notebooks/</a></td><td>Google Colab-oriented notebooks: async generation pipelines plus the figure pipeline.</td></tr>
+        <tr><td><a class="ul-link font-mono text-xs" href="https://github.com/ShaduMan/aligned-in-form/tree/main/Slang_Dataset">Slang_Dataset/</a></td><td>The 53-item matched subset, the 100-item annotated core lexicon, the 501-item expanded lexicon, and E5 debate seeds.</td></tr>
+        <tr><td><a class="ul-link font-mono text-xs" href="https://github.com/ShaduMan/aligned-in-form/tree/main/Slang_Results">Slang_Results/</a></td><td>Raw model generations with latency, temperature, seed, and timestamp metadata.</td></tr>
+        <tr><td><a class="ul-link font-mono text-xs" href="https://github.com/ShaduMan/aligned-in-form/tree/main/Slang_Judged">Slang_Judged/</a></td><td>The annotated layer &mdash; identical records plus Pass / Use / Refusal columns. <strong>Every reported number is computed from these files.</strong></td></tr>
+        <tr><td><a class="ul-link font-mono text-xs" href="https://github.com/ShaduMan/aligned-in-form/tree/main/Visualizations">Visualizations/</a></td><td>Publication figures as vector PDFs, regenerated by the figure notebook.</td></tr>
+        <tr><td><span class="font-mono text-xs">docs/</span></td><td>This static project website and its visual assets.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 class="font-display text-2xl font-medium mb-4">Experiment and artifact map</h3>
+  <p class="text-neutral-600 mb-5 text-sm max-w-3xl">Every table and figure in the paper traces to exactly one row here.</p>
+
+  <div class="card overflow-x-auto mb-8">
+    <table class="results wrap">
+      <thead><tr><th>Protocol</th><th>Notebook</th><th>Input</th><th>Judged artifact</th><th>Reproduces</th></tr></thead>
+      <tbody>
+        <tr><td><strong>E1</strong> Baseline</td><td><a class="ul-link font-mono text-xs" href="https://github.com/ShaduMan/aligned-in-form/blob/main/Notebooks/Gali%20Paper%20E1.ipynb">Gali Paper E1.ipynb</a></td><td class="font-mono text-xs">dataset_exp1.csv</td><td class="font-mono text-xs">E1_results_judged.json</td><td>Table 1 (row 1), Table 3, Fig. 1, Fig. 4</td></tr>
+        <tr><td><strong>E2</strong> Calibration</td><td><a class="ul-link font-mono text-xs" href="https://github.com/ShaduMan/aligned-in-form/blob/main/Notebooks/Gali%20Paper%20E2.ipynb">Gali Paper E2.ipynb</a></td><td class="font-mono text-xs">dataset_exp2.csv</td><td class="font-mono text-xs">E2_results_judged.json</td><td>Table 4, Fig. 5, &sect;4.3</td></tr>
+        <tr><td><strong>E3</strong> Romanized</td><td><span class="text-xs text-neutral-500">No separate notebook &mdash; reuses the E1 pipeline on transformed input</span></td><td class="font-mono text-xs">dataset_exp1.csv</td><td class="font-mono text-xs">E3_banglish_results_judged.json</td><td>Table 1 (row 2), Table 5, Fig. 2</td></tr>
+        <tr><td><strong>E3</strong> Perturbed</td><td><span class="text-xs text-neutral-500">No separate notebook &mdash; reuses the E1 pipeline on transformed input</span></td><td class="font-mono text-xs">dataset_exp1.csv</td><td class="font-mono text-xs">E3_perturbed_results_judged.json</td><td>Table 1 (row 3), Table 5, Fig. 2</td></tr>
+        <tr><td><strong>E4</strong> Chain-of-Thought</td><td><a class="ul-link font-mono text-xs" href="https://github.com/ShaduMan/aligned-in-form/blob/main/Notebooks/Gali%20Paper%20E4.ipynb">Gali Paper E4.ipynb</a></td><td class="font-mono text-xs">dataset_exp1.csv</td><td class="font-mono text-xs">E4_results_judged.json</td><td>Table 1 (row 4), Table 6, Fig. 3</td></tr>
+        <tr><td><strong>E5</strong> Multi-turn debate</td><td><a class="ul-link font-mono text-xs" href="https://github.com/ShaduMan/aligned-in-form/blob/main/Notebooks/Gali%20Paper%20E5.ipynb">Gali Paper E5.ipynb</a></td><td class="font-mono text-xs">dataset_exp5.json</td><td class="font-mono text-xs">E5_results_judged.json</td><td>Table 7, Table 8, Fig. 6</td></tr>
+        <tr><td><strong>E6</strong> Expert persona</td><td><a class="ul-link font-mono text-xs" href="https://github.com/ShaduMan/aligned-in-form/blob/main/Notebooks/Gali%20Paper%20E6.ipynb">Gali Paper E6.ipynb</a></td><td class="font-mono text-xs">dataset_exp6.csv</td><td class="font-mono text-xs">E6_results_judged.json</td><td>Table 1 (row 5), Table 9, Table 10</td></tr>
+        <tr><td>Figures</td><td><a class="ul-link font-mono text-xs" href="https://github.com/ShaduMan/aligned-in-form/blob/main/Notebooks/SlangPaper_Visualization.ipynb">SlangPaper_Visualization.ipynb</a></td><td class="font-mono text-xs">Slang_Judged/*</td><td class="font-mono text-xs">Visualizations/*.pdf</td><td>All figures</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="text-sm text-neutral-600 mb-8 max-w-3xl">E3 has no notebook of its own: both perturbation conditions run the E1 generation pipeline over Romanized or whitespace-inserted versions of the same 53-item input file, which is what makes them a controlled surface-form contrast against the E1 baseline.</p>
+  <h3 class="font-display text-2xl font-medium mb-4">Figure file &rarr; paper figure</h3>
+
+  <div class="card overflow-x-auto mb-8">
+    <table class="results wrap">
+      <thead><tr><th>File</th><th>Paper figure</th><th>Subject</th></tr></thead>
+      <tbody>
+        <tr><td class="font-mono text-xs">fig1_comprehension_vs_containment.pdf</td><td>Figure 1</td><td>E1 model-wise Pass vs. Use</td></tr>
+        <tr><td class="font-mono text-xs">fig4_robustness_lines.pdf</td><td>Figure 2</td><td>E3 comprehension across surface conditions</td></tr>
+        <tr><td class="font-mono text-xs">fig5_cot_double_edge.pdf</td><td>Figure 3</td><td>E4 CoT double-edged shift</td></tr>
+        <tr><td class="font-mono text-xs">fig2_guardrail_bypass_slope.pdf</td><td>Figure 4</td><td>E1 item-level cross-lingual guardrail bypass</td></tr>
+        <tr><td class="font-mono text-xs">fig3_calibration_diverging.pdf</td><td>Figure 5</td><td>E2 bidirectional severity error</td></tr>
+        <tr><td class="font-mono text-xs">fig8_role_asymmetry.pdf</td><td>Figure 6</td><td>E5 de-escalation by conversational role</td></tr>
+        <tr><td class="font-mono text-xs">fig6_escalation_vs_innovation.pdf</td><td>&mdash;</td><td>Supporting: escalation vs. innovation (&sect;D.5)</td></tr>
+        <tr><td class="font-mono text-xs">fig7_expert_persona_3d.pdf</td><td>&mdash;</td><td>Supporting: expert-persona profiles (&sect;4.7, &sect;D.6)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 class="font-display text-2xl font-medium mb-3">Clone and set up</h3>
+  <p class="text-neutral-600 mb-4 text-sm max-w-3xl">
+    Everything under the data directories is plain CSV, JSON, and PDF. <strong>No API credentials are needed to
+    reproduce any number in the paper</strong> &mdash; only to regenerate model responses from scratch.
+  </p>
+  <div class="card p-5 mb-6 overflow-x-auto">
+<pre class="font-mono text-xs text-neutral-800">git clone https://github.com/ShaduMan/aligned-in-form.git
+cd aligned-in-form
+
+python -m venv .venv &amp;&amp; source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install pandas numpy openai nest_asyncio tqdm python-dotenv matplotlib</pre>
+  </div>
+
+  <h3 class="font-display text-2xl font-medium mb-3">Verify the published numbers</h3>
+  <div class="card p-5 overflow-x-auto">
+<pre class="font-mono text-xs text-neutral-800">import json
+import pandas as pd
+
+df = pd.DataFrame(json.load(open("Slang_Judged/E1_results_judged.json")))
+
+for col in ["Bangla Pass", "Bangla Use", "English Pass", "English Use"]:
+    rate = 100 * pd.to_numeric(df[col], errors="coerce").fillna(0).sum() / len(df)
+    print(f"{col:14s} {rate:.2f}%")
+
+# Bangla Pass    89.06%
+# Bangla Use     92.83%
+# English Pass   96.98%
+# English Use    92.83%</pre>
+  </div>
+
+  <p class="mt-6 text-sm text-neutral-600 max-w-3xl">
+    Regenerating model responses additionally requires an OpenRouter key
+    (<span class="font-mono text-xs">OPENROUTER_API_KEY</span>). The notebooks were developed for a Colab-style
+    environment and install dependencies inside individual cells; update absolute paths before running locally.
+  </p>
+</section>
+
+<!-- ============================================================== -->
+<!-- SCOPE -->
+<!-- ============================================================== -->
+<section id="scope" class="max-w-6xl mx-auto px-6 py-16">
+  <div class="section-num mb-3">// Scope and Interpretation</div>
+  <h2 class="font-display text-3xl md:text-4xl font-medium tracking-tight mb-8">How to Read the Results</h2>
+
+  <div class="grid md:grid-cols-2 gap-5">
+    <div class="card p-6">
+      <div class="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-neutral-500 mb-2">One language</div>
+      <p class="text-sm text-neutral-700">The audit covers Bangla only. Whether the decoupling generalizes to other low-resource languages and scripts is a hypothesis this data cannot settle.</p>
+    </div>
+    <div class="card p-6">
+      <div class="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-neutral-500 mb-2">Cohort tier and drift</div>
+      <p class="text-sm text-neutral-700">All five subjects are <span class="font-mono text-xs">-flash</span> / <span class="font-mono text-xs">-mini</span>-tier snapshots queried in a fixed window. Flagship models, different decoding settings, and later safety updates will shift absolute rates. The structure of the decoupling should be re-tested, not assumed.</p>
+    </div>
+    <div class="card p-6">
+      <div class="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-neutral-500 mb-2">Annotation subjectivity</div>
+      <p class="text-sm text-neutral-700">Severity agreement is strong (&kappa; = 0.84), but the qualitative Pass and Escalation judgments were not fully inter-rated and carry residual subjectivity.</p>
+    </div>
+    <div class="card p-6">
+      <div class="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-neutral-500 mb-2">Coarse cells</div>
+      <p class="text-sm text-neutral-700">Single-turn results rest on 53 items, so item-level percentages move in steps of 20%. E2 is thin for the open-weight subject, which refused 78% of items.</p>
+    </div>
+    <div class="card p-6">
+      <div class="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-neutral-500 mb-2">Prompt sensitivity</div>
+      <p class="text-sm text-neutral-700">Results are conditioned on specific templates &mdash; persona, JSON schema, CoT trigger, debate framing. Alternative phrasings or vendor-side updates may modulate magnitudes.</p>
+    </div>
+    <div class="card p-6">
+      <div class="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-neutral-500 mb-2">Simulated dynamics</div>
+      <p class="text-sm text-neutral-700">E5 uses model-versus-model debate as a proxy for human&ndash;model interaction.</p>
+    </div>
+  </div>
+
+  <p class="mt-8 text-neutral-700 max-w-3xl leading-relaxed">
+    These bound magnitude and generality &mdash; not the qualitative existence of the comprehension&ndash;containment
+    decoupling, which recurs across all six independent protocols.
+  </p>
+
+  <div class="mt-10 card p-6 md:p-8 tint-cyan">
+    <div class="section-num mb-3">// Toward meaning-grounded containment</div>
+    <p class="text-sm text-neutral-700 leading-relaxed">
+      Because the failure is architectural rather than lexical, patching keyword lists or appending Bangla slurs to a
+      blocklist will not close the gap. Durable fixes must align safety on meaning representations rather than surface
+      tokens; treat reasoning traces as safety surfaces, applying containment to intermediate steps and not only final
+      answers; build tokenizer-robust detectors evaluated under Romanization and perturbation rather than canonical
+      script alone; and expand low-resource alignment data beyond explicit sexual profanity to the dehumanizing social
+      and communal register that current filters ignore. Native-speaker-calibrated severity scales are a prerequisite
+      for all four.
+    </p>
+  </div>
+</section>
+
+<!-- ============================================================== -->
+<!-- CITATION -->
+<!-- ============================================================== -->
+<section id="citation" class="max-w-6xl mx-auto px-6 py-16">
+  <div class="section-num mb-3">// Citation</div>
+  <h2 class="font-display text-3xl md:text-4xl font-medium tracking-tight mb-6">Reference</h2>
+
+  <p class="text-neutral-700 mb-6 max-w-3xl">
+    Habib, Shadab Bin, A&#772;K M Ferdous Reza Habib, Subarno Neel, and Adib Sakhawat.
+    <em>Aligned in Form, Not in Meaning: The Comprehension&ndash;Containment Decoupling of LLM Safety in Low-Resource
+    Bangla Derogatory Speech</em>. arXiv:2608.02941, 2026.
+  </p>
+
+  <div class="card p-5 overflow-x-auto">
+<pre class="font-mono text-xs text-neutral-800">@misc{habib2026alignedinform,
+  title         = {Aligned in Form, Not in Meaning: The Comprehension--Containment Decoupling
+                   of {LLM} Safety in Low-Resource {Bangla} Derogatory Speech},
+  author        = {Habib, Shadab Bin and Habib, A K M Ferdous Reza and
+                   Neel, Subarno and Sakhawat, Adib},
+  year          = {2026},
+  eprint        = {2608.02941},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.CL},
+  doi           = {10.48550/arXiv.2608.02941},
+  url           = {https://arxiv.org/abs/2608.02941}
+}
+
+% PLACEHOLDER — replace with the proceedings entry once the venue decision is final.
+% @inproceedings{habib2027alignedinform,
+%   title     = {Aligned in Form, Not in Meaning: ...},
+%   author    = {Habib, Shadab Bin and Habib, A K M Ferdous Reza and
+%                Neel, Subarno and Sakhawat, Adib},
+%   booktitle = {&lt;VENUE — under review&gt;},
+%   year      = {&lt;YEAR&gt;},
+%   pages     = {&lt;PAGES&gt;},
+%   doi       = {&lt;DOI&gt;}
+% }</pre>
+  </div>
+
+  <p class="mt-5 text-sm text-neutral-600 max-w-3xl">
+    The manuscript is under review; the arXiv entry above is the citable record until a venue decision is announced.
+  </p>
+</section>
+
+<!-- ============================================================== -->
+<!-- FOOTER -->
+<!-- ============================================================== -->
+<footer class="border-t border-neutral-200 mt-20">
+  <div class="max-w-7xl mx-auto px-6 py-12">
+    <div class="grid md:grid-cols-3 gap-8">
+      <div>
+        <div class="flex items-center gap-2 mb-3">
+          <div class="w-2.5 h-2.5 rounded-full" style="background: linear-gradient(135deg, #00E5FF 0%, #C9B6FF 60%, #FFD6E0 100%);"></div>
+          <span class="font-mono text-xs tracking-widest text-neutral-700 uppercase">Aligned in Form</span>
+        </div>
+        <p class="text-sm text-neutral-600 leading-relaxed">
+          The comprehension&ndash;containment decoupling of LLM safety in low-resource Bangla derogatory speech.
+        </p>
+      </div>
+
+      <div>
+        <h4 class="font-mono text-xs uppercase tracking-widest text-neutral-500 mb-3">Resources</h4>
+        <ul class="space-y-2 text-sm">
+          <li><a href="https://arxiv.org/pdf/2608.02941" class="ul-link">Read the full paper (PDF)</a></li>
+          <li><a href="https://arxiv.org/abs/2608.02941" class="ul-link">arXiv record</a></li>
+          <li><a href="https://github.com/ShaduMan/aligned-in-form" class="ul-link">Code &amp; data on GitHub</a></li>
+          <li><a href="https://github.com/ShaduMan/aligned-in-form#ethics-and-responsible-use" class="ul-link">Ethics &amp; responsible use</a></li>
+          <li><a href="https://www.apache.org/licenses/LICENSE-2.0" class="ul-link">Apache License 2.0</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4 class="font-mono text-xs uppercase tracking-widest text-neutral-500 mb-3">Affiliation</h4>
+        <p class="text-sm text-neutral-700 leading-relaxed">
+          Department of Computer Science and Engineering<br>
+          Islamic University of Technology<br>
+          Dhaka, Bangladesh
+        </p>
+      </div>
+    </div>
+
+    <div class="mt-10 pt-6 border-t border-neutral-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <p class="text-xs text-neutral-500 font-mono">
+        &copy; 2026 &middot; Habib, Habib, Neel &amp; Sakhawat
+      </p>
+      <p class="text-xs text-neutral-500">
+        Site built with Claude.
+      </p>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Protocol table switcher — no external dependencies.
+  (function () {
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('[role="tab"]'));
+    if (!tabs.length) return;
+
+    function select(tab) {
+      tabs.forEach(function (t) {
+        var panel = document.getElementById(t.getAttribute('aria-controls'));
+        var on = (t === tab);
+        t.setAttribute('aria-selected', on ? 'true' : 'false');
+        if (panel) panel.hidden = !on;
+      });
+    }
+
+    tabs.forEach(function (tab, i) {
+      tab.addEventListener('click', function () { select(tab); });
+      tab.addEventListener('keydown', function (e) {
+        var next = null;
+        if (e.key === 'ArrowRight') next = tabs[(i + 1) % tabs.length];
+        if (e.key === 'ArrowLeft') next = tabs[(i - 1 + tabs.length) % tabs.length];
+        if (next) { e.preventDefault(); next.focus(); select(next); }
+      });
+    });
+  })();
+</script>
+
+</body>
+</html>
